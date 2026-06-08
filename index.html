@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alif's Visual Pattern – Hydrocarbon Simulation v2</title>
+<style>
+  :root {
+    --alkana: #F5A623;
+    --alkena: #7ED321;
+    --alkuna: #4A90D9;
+    /* NEW: colors for branch and cycle modes */
+    --branch: #E040FB;
+    --cycle:  #00BCD4;
+    --bg: #0A0A0A;
+    --surface: #141414;
+    --border: #2A2A2A;
+    --text: #F0F0F0;
+    --muted: #666;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: Arial, Helvetica, sans-serif; padding: 20px; }
+
+  header { text-align: center; margin-bottom: 20px; padding: 18px; border: 1px solid var(--border); background: var(--surface); }
+
+  .formula-box { text-align: center; padding: 14px; background: #1A1A1A; border: 2px solid #FFFFFF; margin-bottom: 0px; font-family: Arial, sans-serif; font-size: 22px; font-weight: 900; color: #FFFFFF; letter-spacing: 2px; }
+  .unifies-label { text-align: center; padding: 8px 0; font-size: 13px; color: #666; font-style: italic; letter-spacing: 1px; margin-bottom: 0px; }
+
+  .three-formulas { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .fcard { text-align: center; padding: 12px 6px; background: #1A1A1A; border: 2px solid; }
+  .fcard .frule { font-size: 16px; font-weight: 900; margin-bottom: 4px; }
+  .fcard .fname { font-size: 12px; font-weight: 700; color: #aaa; }
+
+  /* ── MODE SWITCHER (5 buttons) ── */
+  .mode-switcher {
+    display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .msbtn {
+    flex: 1; min-width: 80px; padding: 11px 4px;
+    border: 2px solid var(--border); background: transparent;
+    color: var(--text); font-family: Arial, sans-serif;
+    font-size: 12px; font-weight: 900; cursor: pointer; letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+  .msbtn.active-single  { background: var(--alkana);  border-color: var(--alkana);  color: #000; }
+  .msbtn.active-compare { background: var(--alkuna);  border-color: var(--alkuna);  color: #fff; }
+  .msbtn.active-branch  { background: var(--branch);  border-color: var(--branch);  color: #000; }
+  .msbtn.active-cycle   { background: var(--cycle);   border-color: var(--cycle);   color: #000; }
+
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .ctrl { background: var(--surface); border: 1px solid var(--border); padding: 14px; }
+  .ctrl label { display: block; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+
+  .series-btns { display: flex; gap: 6px; }
+  .sbtn { flex: 1; padding: 13px 4px; border: 1px solid var(--border); background: transparent; color: var(--text); font-family: Arial, sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: 1px; transition: all 0.15s; }
+  .sbtn.alkana.active { background: var(--alkana); color: #000; border-color: var(--alkana); }
+  .sbtn.alkena.active { background: var(--alkena); color: #000; border-color: var(--alkena); }
+  .sbtn.alkuna.active { background: var(--alkuna); color: #fff; border-color: var(--alkuna); }
+
+  input[type=range] { width: 100%; }
+  .n-val { text-align: center; font-size: 28px; font-weight: 800; margin-top: 6px; }
+
+  .viz { background: var(--surface); border: 1px solid var(--border); padding: 28px 20px; margin-bottom: 16px; overflow-x: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 200px; }
+  .viz-title { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+
+  .results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .rcard { background: var(--surface); border: 1px solid var(--border); padding: 14px; text-align: center; }
+  .rcard .lbl { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .rcard .val { font-family: Arial, sans-serif; font-size: 28px; font-weight: 800; }
+  .rcard .sub { font-size: 22px; font-weight: 700; color: var(--text); margin-top: 8px; }
+
+  .warn { background: #1A0000; border: 1px solid #F44336; padding: 12px 16px; font-size: 13px; color: #F44336; margin-bottom: 14px; display: none; line-height: 1.7; }
+  .warn.show { display: block; }
+
+  .ratio-panel { background: var(--surface); border: 1px solid var(--border); padding: 16px; margin-bottom: 16px; text-align: center; }
+  .ratio-title { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .ratio-row { display: flex; align-items: center; justify-content: center; gap: 0; }
+  .ratio-col { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 12px 20px; }
+  .ratio-num { font-family: Arial, sans-serif; font-size: 42px; font-weight: 900; line-height: 1; }
+  .rbg { display: flex; gap: 5px; }
+  .rb { width: 16px; height: 16px; border: 2px solid; }
+  .ratio-sep { font-size: 32px; color: var(--muted); font-weight: 700; padding: 0 4px; margin-top: 12px; align-self: flex-start; }
+
+  .bpanel { background: var(--surface); border: 1px solid var(--border); padding: 16px; margin-bottom: 16px; }
+  .bpanel-title { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .bitem { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border); margin-bottom: 8px; font-size: 14px; line-height: 1.5; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot.ok { background: #4CAF50; }
+  .dot.no { background: #F44336; }
+  .fml { color: var(--muted); margin-left: auto; font-size: 13px; white-space: nowrap; }
+
+  footer { text-align: center; padding: 16px; font-size: 14px; color: var(--muted); border-top: 1px solid var(--border); line-height: 2.0; }
+
+  /* ─────────────────────────────────────────
+     NEW: IHD PANEL
+  ───────────────────────────────────────── */
+  .ihd-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 16px; margin-bottom: 16px;
+  }
+  .ihd-title {
+    font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 12px;
+  }
+  .ihd-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px; border: 1px solid var(--border); margin-bottom: 8px;
+  }
+  .ihd-val {
+    font-size: 32px; font-weight: 900; min-width: 50px; text-align: center;
+  }
+  .ihd-info { font-size: 13px; color: #ccc; line-height: 1.7; flex: 1; }
+  .ihd-formula { font-size: 12px; color: var(--muted); margin-top: 4px; font-style: italic; }
+
+  /* ─────────────────────────────────────────
+     NEW: BRANCH MODE controls & viz
+  ───────────────────────────────────────── */
+  #branchControls {
+    display: none; background: var(--surface);
+    border: 1px solid var(--branch); padding: 16px; margin-bottom: 16px;
+  }
+  #branchControls .ctrl-title {
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--branch); margin-bottom: 12px; font-weight: 700;
+  }
+  .branch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  #branchViz {
+    display: none; background: var(--surface); border: 1px solid var(--branch);
+    padding: 24px 20px; margin-bottom: 16px; overflow-x: auto;
+    flex-direction: column; align-items: center; gap: 8px; min-height: 220px;
+  }
+  #branchResults {
+    display: none; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px;
+  }
+
+  /* ─────────────────────────────────────────
+     NEW: CYCLE MODE controls & viz
+  ───────────────────────────────────────── */
+  #cycleControls {
+    display: none; background: var(--surface);
+    border: 1px solid var(--cycle); padding: 16px; margin-bottom: 16px;
+  }
+  #cycleControls .ctrl-title {
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--cycle); margin-bottom: 12px; font-weight: 700;
+  }
+  #cycleViz {
+    display: none; background: var(--surface); border: 1px solid var(--cycle);
+    padding: 24px 20px; margin-bottom: 16px;
+    flex-direction: column; align-items: center; gap: 8px; min-height: 280px;
+  }
+  #cycleResults {
+    display: none; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .controls { grid-template-columns: 1fr; }
+    .branch-grid { grid-template-columns: 1fr; }
+    #branchResults { grid-template-columns: 1fr 1fr; }
+    #cycleResults  { grid-template-columns: 1fr 1fr; }
+    body { padding: 12px; }
+    .msbtn { font-size: 11px; padding: 10px 2px; }
+    .ratio-col { padding: 10px 14px; }
+    .ratio-num { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════
+     HEADER (unchanged)
+══════════════════════════════ -->
+<header>
+  <h1 style="font-size:28px;font-weight:900;margin-bottom:6px;font-family:Arial,sans-serif;">
+    Hydrocarbon Pattern Explorer
+    <span style="font-size:16px;color:#888;font-weight:700;"> v2</span>
+  </h1>
+  <h2 style="font-size:16px;font-weight:700;color:#aaa;margin-bottom:6px;font-family:Arial,sans-serif;font-style:normal;">
+    Visual Ratio 3:2:1 · Branch · Cycle · IHD
+  </h2>
+  <p style="font-size:13px;color:#666;">Simulasi Pola Visual Deret Homolog Hidrokarbon</p>
+  <p style="font-size:11px;color:#444;margin-top:8px;letter-spacing:1px;">
+    Muhammad Alif Alfatih Fauzan · SMP Adik Irma · Jakarta · 2026
+  </p>
+</header>
+
+<!-- ══════════════════════════════
+     UNIFIED FORMULA + 3 CARDS (unchanged)
+══════════════════════════════ -->
+<div class="formula-box">Total = 2a + (n−2)b</div>
+<div class="unifies-label">menyatukan ketiga rumus / unifies three formulas</div>
+<div class="three-formulas">
+  <div class="fcard" style="border-color:#F5A623;"><div class="frule" style="color:#F5A623;">H = 2n+2</div><div class="fname">Alkana / Alkane</div></div>
+  <div class="fcard" style="border-color:#7ED321;"><div class="frule" style="color:#7ED321;">H = 2n</div><div class="fname">Alkena / Alkene</div></div>
+  <div class="fcard" style="border-color:#4A90D9;"><div class="frule" style="color:#4A90D9;">H = 2n−2</div><div class="fname">Alkuna / Alkyne</div></div>
+</div>
+
+<!-- ══════════════════════════════
+     NEW: MODE SWITCHER — 4 exclusive modes
+══════════════════════════════ -->
+<div class="mode-switcher">
+  <button class="msbtn active-single" id="msBtn-single">SINGLE</button>
+  <button class="msbtn" id="msBtn-compare">COMPARE</button>
+  <button class="msbtn" id="msBtn-branch">BRANCH 🌿</button>
+  <button class="msbtn" id="msBtn-cycle">CYCLE ⬡</button>
+</div>
+
+<!-- ══════════════════════════════
+     SINGLE MODE CONTROLS (unchanged)
+══════════════════════════════ -->
+<div id="singleControls" class="controls">
+  <div class="ctrl">
+    <label>Hydrocarbon Series</label>
+    <div class="series-btns">
+      <button class="sbtn alkana active" id="btn-alkana">ALKANA</button>
+      <button class="sbtn alkena" id="btn-alkena">ALKENA</button>
+      <button class="sbtn alkuna" id="btn-alkuna">ALKUNA</button>
+    </div>
+  </div>
+  <div class="ctrl">
+    <label>Carbon Chain Length (n)</label>
+    <input type="range" id="nSlider" min="1" max="10" value="4" style="accent-color:#F5A623">
+    <div class="n-val" id="nVal">n = 4</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     WARN BOX (unchanged)
+══════════════════════════════ -->
+<div id="warnBox" class="warn">
+  ⚠ This molecule does not exist in nature.<br>
+  The formula reaches a boundary that confirms:<br>
+  <strong>"Batasan Rumus = Batasan Alam"</strong> — Alif, 2026
+</div>
+
+<!-- ══════════════════════════════
+     SINGLE VIZ (unchanged)
+══════════════════════════════ -->
+<div class="viz" id="singleViz">
+  <div class="viz-title">A-B-A Tiered Rectangle — Carbon squares form one connected rectangle</div>
+  <div style="align-self:center;text-align:center;font-size:11px;color:#555;font-style:italic;margin-top:2px;">
+    Visual geometry of H pattern — not a chemical bond diagram<br>
+    Representasi geometri visual pola atom H — bukan diagram ikatan kimia
+  </div>
+  <div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+    <div id="chainDiv" style="display:inline-flex;flex-direction:column;align-items:center;padding:12px;min-width:100%;"></div>
+  </div>
+</div>
+
+<!-- COMPARE VIZ (unchanged) -->
+<div id="compareViz" style="display:none;">
+  <div class="viz" style="margin-bottom:8px;">
+    <div style="align-self:center;font-size:13px;font-weight:900;color:#F5A623;margin-bottom:8px;">🟠 ALKANA / ALKANE — H = 2n+2</div>
+    <div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;"><div id="chainAlkana" style="display:inline-flex;flex-direction:column;align-items:center;padding:8px;min-width:100%;"></div></div>
+  </div>
+  <div class="viz" style="margin-bottom:8px;">
+    <div style="align-self:center;font-size:13px;font-weight:900;color:#7ED321;margin-bottom:8px;">🟢 ALKENA / ALKENE — H = 2n</div>
+    <div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;"><div id="chainAlkena" style="display:inline-flex;flex-direction:column;align-items:center;padding:8px;min-width:100%;"></div></div>
+  </div>
+  <div class="viz" style="margin-bottom:8px;">
+    <div style="align-self:center;font-size:13px;font-weight:900;color:#4A90D9;margin-bottom:8px;">🔵 ALKUNA / ALKYNE — H = 2n−2</div>
+    <div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;"><div id="chainAlkuna" style="display:inline-flex;flex-direction:column;align-items:center;padding:8px;min-width:100%;"></div></div>
+  </div>
+</div>
+
+<!-- SINGLE RESULTS (unchanged) -->
+<div class="results" id="singleResults">
+  <div class="rcard"><div class="lbl">Calculation</div><div class="val" id="rFormula" style="font-size:14px;padding-top:6px;letter-spacing:1px;word-spacing:4px;"></div></div>
+  <div class="rcard"><div class="lbl">Total H</div><div class="val" id="rH"></div><div class="sub" id="rMol"></div></div>
+  <div class="rcard"><div class="lbl">In Nature?</div><div class="val" id="rExists"></div><div class="sub" id="rName"></div></div>
+</div>
+
+<!-- ══════════════════════════════
+     NEW: BRANCH MODE
+══════════════════════════════ -->
+<div id="branchControls">
+  <div class="ctrl-title">🌿 HIDROKARBON BERCABANG / BRANCHED HYDROCARBON</div>
+  <div class="branch-grid">
+    <div class="ctrl" style="border-color: var(--branch);">
+      <label>Total Karbon Utama (n)</label>
+      <input type="range" id="branchN" min="3" max="10" value="5" style="accent-color:var(--branch)">
+      <div class="n-val" id="branchNVal" style="color:var(--branch);">n = 5</div>
+    </div>
+    <div class="ctrl" style="border-color: var(--branch);">
+      <label>Posisi Cabang Metil</label>
+      <input type="range" id="branchPos" min="2" max="4" value="2" style="accent-color:var(--branch)">
+      <div class="n-val" id="branchPosVal" style="color:var(--branch);">pos = 2</div>
+    </div>
+  </div>
+  <div style="margin-top:10px;padding:10px;background:#0A0A0A;border:1px solid var(--branch);font-size:12px;color:#aaa;line-height:1.8;">
+    Cabang = <strong style="color:var(--branch);">metil (–CH₃)</strong> pada posisi yang dipilih.<br>
+    Total C = n + 1 (rantai utama + 1 atom C cabang metil).<br>
+    Rumus: H = 2(n+1) + 2 = 2n + 4 → sama dengan alkana rantai lurus dengan total C yang sama (isomer).
+  </div>
+</div>
+
+<div id="branchViz" style="flex-direction:column;">
+  <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--branch);margin-bottom:8px;font-weight:900;">VISUALISASI RANTAI BERCABANG</div>
+  <div style="font-size:11px;color:#555;font-style:italic;margin-bottom:12px;text-align:center;">Kotak ungu = atom C rantai utama · Kotak cyan = atom C cabang</div>
+  <div style="width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+    <div id="branchChainDiv" style="display:inline-flex;flex-direction:column;align-items:center;padding:12px;"></div>
+  </div>
+</div>
+
+<div id="branchResults" style="display:none;">
+  <div class="rcard"><div class="lbl">Total C</div><div class="val" id="brTotalC" style="color:var(--branch);"></div></div>
+  <div class="rcard"><div class="lbl">Total H</div><div class="val" id="brTotalH" style="color:var(--branch);"></div><div class="sub" id="brMol"></div></div>
+  <div class="rcard"><div class="lbl">IHD</div><div class="val" id="brIHD" style="color:var(--branch);"></div></div>
+  <div class="rcard"><div class="lbl">Nama IUPAC</div><div class="val" id="brName" style="font-size:14px;padding-top:6px;color:var(--branch);"></div></div>
+</div>
+
+<!-- ══════════════════════════════
+     NEW: CYCLE MODE
+══════════════════════════════ -->
+<div id="cycleControls">
+  <div class="ctrl-title">⬡ SIKLOALKANA / CYCLOALKANE</div>
+  <div class="ctrl" style="border-color:var(--cycle);">
+    <label>Jumlah Atom C dalam Cincin (n = 3–8)</label>
+    <input type="range" id="cycleN" min="3" max="8" value="6" style="accent-color:var(--cycle)">
+    <div class="n-val" id="cycleNVal" style="color:var(--cycle);">n = 6</div>
+  </div>
+  <div style="margin-top:10px;padding:10px;background:#0A0A0A;border:1px solid var(--cycle);font-size:12px;color:#aaa;line-height:1.8;">
+    Rumus sikloalkana: <strong style="color:var(--cycle);">CₙH₂ₙ</strong> — sama dengan alkena tetapi IHD berbeda.<br>
+    IHD sikloalkana = 1 (satu ikatan C-C ekstra membentuk cincin).<br>
+    IHD alkena = 1 (satu ikatan rangkap dua C=C).
+  </div>
+</div>
+
+<div id="cycleViz" style="flex-direction:column;align-items:center;">
+  <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--cycle);margin-bottom:8px;font-weight:900;">VISUALISASI CINCIN / RING VISUALIZATION</div>
+  <div style="font-size:11px;color:#555;font-style:italic;margin-bottom:12px;text-align:center;">Polygon cincin karbon — setiap simpul = atom C</div>
+  <svg id="cycleSVG" width="280" height="280" viewBox="0 0 280 280" style="overflow:visible;"></svg>
+  <div id="cycleFormula" style="margin-top:12px;text-align:center;font-size:16px;font-weight:900;color:var(--cycle);"></div>
+</div>
+
+<div id="cycleResults" style="display:none;">
+  <div class="rcard"><div class="lbl">Total C</div><div class="val" id="cyTotalC" style="color:var(--cycle);"></div></div>
+  <div class="rcard"><div class="lbl">Total H</div><div class="val" id="cyTotalH" style="color:var(--cycle);"></div><div class="sub" id="cyMol"></div></div>
+  <div class="rcard"><div class="lbl">IHD</div><div class="val" id="cyIHD" style="color:var(--cycle);">1</div></div>
+  <div class="rcard"><div class="lbl">Nama</div><div class="val" id="cyName" style="font-size:14px;padding-top:6px;color:var(--cycle);"></div></div>
+</div>
+
+<!-- ══════════════════════════════
+     NEW: IHD PANEL — always visible (updates with mode)
+══════════════════════════════ -->
+<div class="ihd-panel" id="ihdPanel">
+  <div class="ihd-title">📐 IHD — Indeks Ketidakjenuhan / Degree of Unsaturation</div>
+
+  <!-- IHD formula explanation -->
+  <div style="text-align:center;padding:10px;background:#0A0A0A;border:1px solid #333;margin-bottom:12px;font-size:13px;color:#ccc;line-height:2.0;">
+    IHD = (2C + 2 − H) / 2<br>
+    <span style="color:var(--muted);font-size:11px;">C = jumlah atom karbon · H = jumlah atom hidrogen</span>
+  </div>
+
+  <!-- Dynamic IHD display for current mode -->
+  <div class="ihd-row" id="ihdCurrentRow">
+    <div class="ihd-val" id="ihdValue" style="color:#F5A623;">0</div>
+    <div class="ihd-info">
+      <div id="ihdLabel" style="font-weight:700;font-size:14px;">Alkana (rantai lurus)</div>
+      <div id="ihdDesc" style="color:#888;font-size:12px;margin-top:4px;"></div>
+      <div class="ihd-formula" id="ihdCalc"></div>
+    </div>
+  </div>
+
+  <!-- IHD reference table -->
+  <div style="margin-top:12px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Tabel Referensi IHD</div>
+  <div class="bitem" style="border-color:#F5A623;">
+    <div class="dot" style="background:#F5A623;border-radius:0;"></div>
+    <div>Alkana (rantai lurus / bercabang)</div>
+    <div class="fml" style="color:#F5A623;">IHD = 0</div>
+  </div>
+  <div class="bitem" style="border-color:#7ED321;">
+    <div class="dot" style="background:#7ED321;border-radius:0;"></div>
+    <div>Alkena (1 ikatan rangkap C=C)</div>
+    <div class="fml" style="color:#7ED321;">IHD = 1</div>
+  </div>
+  <div class="bitem" style="border-color:var(--cycle);">
+    <div class="dot" style="background:var(--cycle);border-radius:0;"></div>
+    <div>Sikloalkana (1 cincin)</div>
+    <div class="fml" style="color:var(--cycle);">IHD = 1</div>
+  </div>
+  <div class="bitem" style="border-color:#4A90D9;">
+    <div class="dot" style="background:#4A90D9;border-radius:0;"></div>
+    <div>Alkuna (1 ikatan rangkap tiga C≡C)</div>
+    <div class="fml" style="color:#4A90D9;">IHD = 2</div>
+  </div>
+  <div class="bitem" style="border-color:#E040FB;">
+    <div class="dot" style="background:#E040FB;border-radius:0;"></div>
+    <div>Benzena (1 cincin aromatik)</div>
+    <div class="fml" style="color:#E040FB;">IHD = 4</div>
+  </div>
+
+  <!-- IHD = 3 - a relationship (original insight) -->
+  <div style="margin-top:12px;padding:10px;background:#1A1A1A;border:2px solid #fff;text-align:center;">
+    <div style="font-size:13px;font-weight:900;color:#fff;letter-spacing:1px;">Hubungan IHD dengan nilai a:</div>
+    <div style="font-size:12px;color:#aaa;margin-top:6px;line-height:2.0;">
+      Alkana (a=3) → IHD = 0 = 3 − 3<br>
+      Alkena (a=2) → IHD = 1 = 3 − 2<br>
+      Alkuna (a=1) → IHD = 2 = 3 − 1<br>
+      <span style="color:#F5A623;font-weight:900;font-size:14px;">IHD = 3 − a</span>
+    </div>
+    <div style="font-size:11px;color:#555;margin-top:6px;font-style:italic;">
+      © Muhammad Alif Alfatih Fauzan · 2026
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     RATIO PANEL (unchanged)
+══════════════════════════════ -->
+<div class="ratio-panel" id="ratioPanel">
+  <div class="ratio-title">Visual Ratio — End Values (a)</div>
+  <div class="ratio-row">
+    <div class="ratio-col">
+      <div class="ratio-num" style="color:#F5A623">3</div>
+      <div class="rbg"><div class="rb" style="border-color:#F5A623;background:#F5A623"></div><div class="rb" style="border-color:#F5A623;background:#F5A623"></div><div class="rb" style="border-color:#F5A623;background:#F5A623"></div></div>
+    </div>
+    <div class="ratio-sep">:</div>
+    <div class="ratio-col">
+      <div class="ratio-num" style="color:#7ED321">2</div>
+      <div class="rbg"><div class="rb" style="border-color:#7ED321;background:#7ED321"></div><div class="rb" style="border-color:#7ED321;background:#7ED321"></div></div>
+    </div>
+    <div class="ratio-sep">:</div>
+    <div class="ratio-col">
+      <div class="ratio-num" style="color:#4A90D9">1</div>
+      <div class="rbg"><div class="rb" style="border-color:#4A90D9;background:#4A90D9"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     BOUNDARY PANEL (unchanged)
+══════════════════════════════ -->
+<div class="bpanel" id="boundaryPanel">
+  <div class="bpanel-title">Boundary Conditions — n=1</div>
+  <div class="bitem"><div class="dot ok"></div><div>Alkana n=1 → CH₄ (4H) — exists ✅</div><div class="fml">2(3)+(1-2)(2)=4</div></div>
+  <div class="bitem"><div class="dot no"></div><div>Alkena n=1 → CH₂ (2H) — does not exist ❌</div><div class="fml">2(2)+(1-2)(2)=2</div></div>
+  <div class="bitem"><div class="dot no"></div><div>Alkuna n=1 → CH₀ (0H) — does not exist ❌</div><div class="fml">2(1)+(1-2)(2)=0</div></div>
+</div>
+
+<!-- ══════════════════════════════
+     PROOF PANEL (unchanged)
+══════════════════════════════ -->
+<div style="margin-bottom:16px;">
+  <button id="btnProof" style="width:100%;padding:13px;background:transparent;border:2px solid #555;color:#aaa;font-family:Arial,sans-serif;font-size:14px;font-weight:900;cursor:pointer;letter-spacing:1px;">
+    📐 PEMBUKTIAN MATEMATIS / MATHEMATICAL PROOF
+  </button>
+  <div id="proofPanel" style="display:none;margin-top:8px;">
+    <div style="text-align:center;font-family:Arial,sans-serif;font-size:13px;color:#888;margin-bottom:12px;font-style:italic;">
+      Membuktikan bahwa Total = 2a + (n−2)b menghasilkan ketiga rumus hidrokarbon<br>
+      <span style="color:#666;">Proving that Total = 2a + (n−2)b derives all three hydrocarbon formulas</span>
+    </div>
+    <div style="text-align:center;font-family:Arial,sans-serif;font-size:14px;font-weight:900;color:#fff;background:#1A1A1A;border:2px solid #fff;padding:10px;margin-bottom:12px;">
+      Total = 2a + (n−2)b = 2a + nb − 2b
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <div style="border:2px solid #F5A623;background:#1A1A1A;padding:12px;">
+        <div style="font-size:13px;font-weight:900;color:#F5A623;text-align:center;margin-bottom:10px;border-bottom:1px solid #F5A623;padding-bottom:6px;">ALKANA<br><span style="font-size:11px;font-weight:700;">a=3 · b=2</span></div>
+        <div style="font-size:12px;color:#ccc;line-height:2.0;">2(3) + n(2) − 2(2)<br>= 6 + 2n − 4<br><span style="color:#F5A623;font-weight:900;font-size:14px;">= 2n + 2 ✅</span></div>
+        <div id="proofBoxAlkana" style="margin-top:10px;padding:8px;border:1px solid #F5A623;background:#0A0A0A;font-size:12px;color:#ccc;line-height:2.0;text-align:center;"></div>
+      </div>
+      <div style="border:2px solid #7ED321;background:#1A1A1A;padding:12px;">
+        <div style="font-size:13px;font-weight:900;color:#7ED321;text-align:center;margin-bottom:10px;border-bottom:1px solid #7ED321;padding-bottom:6px;">ALKENA<br><span style="font-size:11px;font-weight:700;">a=2 · b=2</span></div>
+        <div style="font-size:12px;color:#ccc;line-height:2.0;">2(2) + n(2) − 2(2)<br>= 4 + 2n − 4<br><span style="color:#7ED321;font-weight:900;font-size:14px;">= 2n ✅</span></div>
+        <div id="proofBoxAlkena" style="margin-top:10px;padding:8px;border:1px solid #7ED321;background:#0A0A0A;font-size:12px;color:#ccc;line-height:2.0;text-align:center;"></div>
+      </div>
+      <div style="border:2px solid #4A90D9;background:#1A1A1A;padding:12px;">
+        <div style="font-size:13px;font-weight:900;color:#4A90D9;text-align:center;margin-bottom:10px;border-bottom:1px solid #4A90D9;padding-bottom:6px;">ALKUNA<br><span style="font-size:11px;font-weight:700;">a=1 · b=2</span></div>
+        <div style="font-size:12px;color:#ccc;line-height:2.0;">2(1) + n(2) − 2(2)<br>= 2 + 2n − 4<br><span style="color:#4A90D9;font-weight:900;font-size:14px;">= 2n − 2 ✅</span></div>
+        <div id="proofBoxAlkuna" style="margin-top:10px;padding:8px;border:1px solid #4A90D9;background:#0A0A0A;font-size:12px;color:#ccc;line-height:2.0;text-align:center;"></div>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:12px;color:#888;margin-top:12px;padding:10px;border:1px solid #2A2A2A;font-style:italic;line-height:1.8;">
+      Dengan b=2 tetap dan a berubah (3→2→1) — satu rumus menghasilkan ketiga rumus standar.<br>
+      <span style="color:#666;">With b=2 constant and a varying (3→2→1) — one formula derives all three standard formulas.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     FOOTER (unchanged)
+══════════════════════════════ -->
+<footer>
+  <div style="display:flex;gap:0;justify-content:center;align-items:flex-start;margin-bottom:16px;">
+    <div style="width:320px;text-align:right;border-right:1px solid #333;padding-right:20px;">
+      <div style="font-size:12.5px;color:#aaa;line-height:2.2;">
+        "Satu rumus visual menyatukan tiga rumus hidrokarbon.<br>
+        Matematika konfirmasi kimia.<br>
+        Batasan rumus = batasan alam."
+      </div>
+    </div>
+    <div style="width:320px;text-align:left;padding-left:20px;">
+      <div style="font-size:12.5px;color:#666;font-style:italic;line-height:2.2;">
+        "One visual formula unifies three hydrocarbon formulas.<br>
+        Mathematics confirms chemistry.<br>
+        The boundary of the formula is the boundary of nature."
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center;font-size:14px;font-weight:700;color:#888;letter-spacing:1px;border-top:1px solid #222;padding-top:12px;">
+    Muhammad Alif Alfatih Fauzan · 2026
+  </div>
+  <div style="text-align:center;margin-top:12px;padding-top:10px;border-top:1px solid #1A1A1A;">
+    <div style="font-size:12px;color:#555;margin-bottom:4px;">Copyright © Muhammad Alif Alfatih Fauzan 2026</div>
+    <div style="font-size:12px;color:#444;margin-bottom:8px;">Hak Cipta dilindungi undang-undang.</div>
+    <div style="font-size:12px;color:#555;margin-bottom:6px;">Untuk informasi, kritik dan saran: <a href="mailto:alifmathbook@gmail.com" style="color:#F5A623;text-decoration:none;font-weight:700;">alifmathbook@gmail.com</a></div>
+    <div style="font-size:12px;color:#555;">Tonton video penelitian: <a href="https://youtu.be/Oqa4wmXRQjM" target="_blank" style="color:#FF0000;text-decoration:none;font-weight:700;">▶️ youtu.be/Oqa4wmXRQjM</a></div>
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════════════════════
+     JAVASCRIPT — existing + new features
+══════════════════════════════════════════════════════════ -->
+<script>
+/* ─── EXISTING: Config ─── */
+var CFG = {
+  alkana: { a:3, b:2, color:'#F5A623', minN:1,
+    names:['','Metana','Etana','Propana','Butana','Pentana','Heksana','Heptana','Oktana','Nonana','Dekana'] },
+  alkena: { a:2, b:2, color:'#7ED321', minN:2,
+    names:['','—','Etena','Propena','Butena','Pentena','Heksena','Heptena','Oktena','Nonena','Dekena'] },
+  alkuna: { a:1, b:2, color:'#4A90D9', minN:2,
+    names:['','—','Etuna','Propuna','Butuna','Pentuna','Heksuna','Heptuna','Oktuna','Nonuna','Dekuna'] }
+};
+
+/* NEW: Cycle names */
+var CYCLE_NAMES = ['','','','Siklopropana','Siklobutana','Siklopentana','Sikloheksana','Sikloheptana','Siklo­oktana'];
+
+/* NEW: Branch prefix names (for IUPAC) */
+var BRANCH_PREFIXES = ['','','','prop','but','pent','heks','hept','okt','non','dek'];
+
+var series = 'alkana', n = 4;
+var currentMode = 'single'; // 'single' | 'compare' | 'branch' | 'cycle'
+
+/* ─── EXISTING: subscript helper ─── */
+function sub(x) {
+  return String(Math.max(0,x)).split('').map(function(d){ return '₀₁₂₃₄₅₆₇₈₉'[d]; }).join('');
+}
+
+/* ─── NEW: IHD calculator ─── */
+function calcIHD(C, H) {
+  return (2*C + 2 - H) / 2;
+}
+
+/* ─── NEW: Update IHD panel based on current mode/values ─── */
+function updateIHDPanel(C, H, label, desc) {
+  var ihd = calcIHD(C, H);
+  var el = document.getElementById('ihdValue');
+  var lbl = document.getElementById('ihdLabel');
+  var dsc = document.getElementById('ihdDesc');
+  var calc = document.getElementById('ihdCalc');
+  el.textContent = ihd;
+  lbl.textContent = label;
+  dsc.textContent = desc;
+  calc.textContent = 'IHD = (2×'+C+' + 2 − '+H+') / 2 = '+ihd;
+  // Color based on IHD
+  if (ihd === 0) el.style.color = '#F5A623';
+  else if (ihd === 1) el.style.color = '#7ED321';
+  else if (ihd === 2) el.style.color = '#4A90D9';
+  else el.style.color = '#E040FB';
+}
+
+/* ─── EXISTING: setSeries ─── */
+function setSeries(s) {
+  series = s;
+  document.querySelectorAll('.sbtn').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelector('.sbtn.'+s).classList.add('active');
+  document.getElementById('nSlider').style.accentColor = CFG[s].color;
+  update();
+}
+
+/* ─── EXISTING: setN ─── */
+function setN(v) {
+  n = parseInt(v);
+  document.getElementById('nVal').textContent = 'n = ' + n;
+  if (currentMode === 'compare') { updateCompare(); }
+  else { update(); }
+}
+
+/* ─── EXISTING: update (single mode) ─── */
+function update() {
+  var s = CFG[series];
+  var a = s.a, b = s.b, color = s.color, minN = s.minN, names = s.names;
+  var total = 2*a + (n-2)*b;
+  var exists = n >= minN;
+
+  document.getElementById('warnBox').classList.toggle('show', !exists);
+  document.getElementById('rFormula').textContent = '2('+a+')+('+n+'-2)('+b+')='+Math.max(0,total);
+  document.getElementById('rH').textContent = Math.max(0,total);
+  document.getElementById('rH').style.color = color;
+  document.getElementById('rMol').textContent = 'C'+sub(n)+'H'+sub(total);
+  document.getElementById('rExists').textContent = exists ? '✅' : '❌';
+  document.getElementById('rName').textContent = exists ? (names[n]||series) : 'Does not exist';
+
+  drawChainTo('chainDiv', n, a, b, color, exists);
+  updateProof();
+
+  // NEW: Update IHD panel for single mode
+  var ihdDescMap = {
+    alkana: 'Rantai jenuh — tidak ada ikatan rangkap.',
+    alkena: 'Satu ikatan rangkap C=C.',
+    alkuna: 'Satu ikatan rangkap tiga C≡C.'
+  };
+  if (exists) {
+    updateIHDPanel(n, Math.max(0,total), names[n]||series, ihdDescMap[series]);
+  }
+}
+
+/* ─── EXISTING: updateProof ─── */
+function updateProof() {
+  var bA = document.getElementById('proofBoxAlkana');
+  var bE = document.getElementById('proofBoxAlkena');
+  var bU = document.getElementById('proofBoxAlkuna');
+  if (!bA) return;
+  var hA = 2*3 + (n-2)*2;
+  bA.innerHTML = 'n=<b style="color:#F5A623">'+n+'</b><br>2(3)+'+n+'(2)−2(2)<br>=6+'+(n*2)+'−4<br><span style="color:#F5A623;font-weight:900;font-size:14px;">='+hA+' ✅</span><br><span style="color:#666;font-size:11px;">C'+sub(n)+'H'+sub(hA)+'</span>';
+  var hE = 2*2 + (n-2)*2;
+  if (n >= 2) {
+    bE.innerHTML = 'n=<b style="color:#7ED321">'+n+'</b><br>2(2)+'+n+'(2)−2(2)<br>=4+'+(n*2)+'−4<br><span style="color:#7ED321;font-weight:900;font-size:14px;">='+hE+' ✅</span><br><span style="color:#666;font-size:11px;">C'+sub(n)+'H'+sub(hE)+'</span>';
+  } else {
+    bE.innerHTML = '<span style="color:#F44336;font-size:11px;">n=1 tidak ada di alam<br>does not exist</span>';
+  }
+  var hU = 2*1 + (n-2)*2;
+  if (n >= 2) {
+    bU.innerHTML = 'n=<b style="color:#4A90D9">'+n+'</b><br>2(1)+'+n+'(2)−2(2)<br>=2+'+(n*2)+'−4<br><span style="color:#4A90D9;font-weight:900;font-size:14px;">='+Math.max(0,hU)+' ✅</span><br><span style="color:#666;font-size:11px;">C'+sub(n)+'H'+sub(hU)+'</span>';
+  } else {
+    bU.innerHTML = '<span style="color:#F44336;font-size:11px;">n=1 tidak ada di alam<br>does not exist</span>';
+  }
+}
+
+/* ─── EXISTING: drawChainTo ─── */
+function drawChainTo(cid, n, a, b, seriesColor, exists) {
+  var container = document.getElementById(cid);
+  if (!container) return;
+  container.innerHTML = '';
+
+  var parent = container.parentElement;
+  var availW = parent ? Math.max(160, parent.clientWidth - 40) : 300;
+  var C = 40, H = 16, BL = 6;
+  var totalMidW = (H+BL) + n*C + (BL+H);
+  if (totalMidW > availW) {
+    var sc = availW/totalMidW;
+    C = Math.max(18, Math.floor(C*sc));
+    H = Math.max(9,  Math.floor(H*sc));
+    BL= Math.max(3,  Math.floor(BL*sc));
+  }
+  var fsC = Math.max(8,Math.floor(C*0.30)), fsH = Math.max(6,Math.floor(H*0.55));
+  var fsAB= Math.max(8,Math.floor(C*0.28)), fsInf=Math.max(9,Math.floor(C*0.26));
+  var hColor = exists ? '#DDDDDD' : '#2A2A2A';
+  var hBord  = exists ? '#DDDDDD' : '#333';
+
+  function md(css,txt){var d=document.createElement('div');d.style.cssText=css;if(txt!==undefined)d.textContent=txt;return d;}
+  function sq(sz,bg,brd,txt,col,fs){return md('width:'+sz+'px;height:'+sz+'px;background:'+bg+';border:2px solid '+brd+';display:flex;align-items:center;justify-content:center;font-family:Arial;font-size:'+fs+'px;font-weight:900;color:'+col+';flex-shrink:0;box-sizing:border-box;',txt);}
+  function vl(){return md('width:2px;height:'+BL+'px;background:#555;margin:0 auto;flex-shrink:0;');}
+  function hl(){return md('width:'+BL+'px;height:2px;background:#555;flex-shrink:0;align-self:center;');}
+  function em(w,h){return md('width:'+w+'px;height:'+h+'px;flex-shrink:0;');}
+  var R='display:flex;align-items:center;justify-content:center;';
+  var topRow=md(R.replace('center','flex-end'));
+  var midRow=md(R);
+  var botRow=md(R.replace('center','flex-start'));
+  var lblRow=md(R+'margin-top:4px;');
+
+  topRow.appendChild(em(H+BL,H+BL));
+  for(var t=0;t<n;t++){
+    var tE=(t===0||t===n-1); var tH=tE?a:b;
+    var tC=md('width:'+C+'px;display:flex;flex-direction:column;align-items:center;flex-shrink:0;');
+    var sT=tE?(tH>=2):(tH>=1);
+    if(sT){tC.appendChild(sq(H,'transparent',hBord,'H',hColor,fsH));tC.appendChild(vl());}
+    else{tC.appendChild(em(H,H+BL));}
+    topRow.appendChild(tC);
+  }
+  topRow.appendChild(em(H+BL,H+BL));
+
+  if(a===3||a===1){midRow.appendChild(sq(H,'transparent',hBord,'H',hColor,fsH));midRow.appendChild(hl());}
+  else{midRow.appendChild(em(H+BL,H));}
+  for(var m=0;m<n;m++){
+    var mE=(m===0||m===n-1);
+    midRow.appendChild(sq(C,'#1E1E1E',mE?seriesColor:'#555','C',mE?seriesColor:'#888',fsC));
+  }
+  if(a===3||a===1){midRow.appendChild(hl());midRow.appendChild(sq(H,'transparent',hBord,'H',hColor,fsH));}
+  else{midRow.appendChild(em(H+BL,H));}
+
+  botRow.appendChild(em(H+BL,H+BL));
+  for(var bt=0;bt<n;bt++){
+    var btE=(bt===0||bt===n-1); var btH=btE?a:b;
+    var bC=md('width:'+C+'px;display:flex;flex-direction:column;align-items:center;flex-shrink:0;');
+    var sB=btE?(btH>=2):(btH>=2);
+    if(sB){bC.appendChild(vl());bC.appendChild(sq(H,'transparent',hBord,'H',hColor,fsH));}
+    else{bC.appendChild(em(H,H+BL));}
+    botRow.appendChild(bC);
+  }
+  botRow.appendChild(em(H+BL,H+BL));
+
+  lblRow.appendChild(em(H+BL,fsAB+4));
+  for(var lb=0;lb<n;lb++){
+    var lE=(lb===0||lb===n-1);
+    lblRow.appendChild(md('width:'+C+'px;text-align:center;font-family:Arial;font-size:'+fsAB+'px;font-weight:900;color:'+(lE?seriesColor:'#555')+';flex-shrink:0;',lE?'A':'B'));
+  }
+  lblRow.appendChild(em(H+BL,fsAB+4));
+
+  var wrap=md('display:inline-flex;flex-direction:column;align-items:center;');
+  wrap.appendChild(topRow); wrap.appendChild(midRow); wrap.appendChild(botRow); wrap.appendChild(lblRow);
+  wrap.appendChild(md('margin-top:8px;color:#888;font-family:Arial;font-size:'+fsInf+'px;font-weight:700;text-align:center;','a='+a+'  b='+b+'  n='+n));
+  wrap.appendChild(md('margin-top:6px;color:#333;font-family:Arial;font-size:10px;text-align:center;','© M. Alif Alfatih Fauzan · 2026'));
+  container.appendChild(wrap);
+}
+
+/* ─── EXISTING: updateCompare ─── */
+function drawNotExist(cid,name,color){
+  var c=document.getElementById(cid); if(!c) return; c.innerHTML='';
+  var m=document.createElement('div');
+  m.style.cssText='padding:16px;text-align:center;font-size:13px;color:'+color+';border:2px dashed '+color+';width:100%;box-sizing:border-box;';
+  m.innerHTML='⚠ '+name+' n=1 — tidak ada di alam / does not exist in nature<br><span style="font-size:11px;color:#555;">Batasan rumus = batasan alam</span>';
+  c.appendChild(m);
+}
+
+function updateCompare() {
+  drawChainTo('chainAlkana',n,CFG.alkana.a,CFG.alkana.b,CFG.alkana.color,n>=CFG.alkana.minN);
+  if(n<CFG.alkena.minN){ drawNotExist('chainAlkena','Alkena/Alkene','#7ED321'); }
+  else{ drawChainTo('chainAlkena',n,CFG.alkena.a,CFG.alkena.b,CFG.alkena.color,true); }
+  if(n<CFG.alkuna.minN){ drawNotExist('chainAlkuna','Alkuna/Alkyne','#4A90D9'); }
+  else{ drawChainTo('chainAlkuna',n,CFG.alkuna.a,CFG.alkuna.b,CFG.alkuna.color,true); }
+}
+
+/* ═══════════════════════════════════════════════════
+   NEW: BRANCH MODE
+   Alkana bercabang: rantai utama n karbon + 1 cabang metil
+   Total C = n + 1, Total H = 2(n+1)+2 = 2n+4
+═══════════════════════════════════════════════════ */
+var branchN = 5, branchPos = 2;
+
+function updateBranch() {
+  branchN   = parseInt(document.getElementById('branchN').value);
+  branchPos = parseInt(document.getElementById('branchPos').value);
+
+  // Clamp branchPos: must be between 2 and (branchN-1) for a true branch
+  var maxPos = Math.max(2, branchN - 1);
+  if (branchPos > maxPos) {
+    branchPos = maxPos;
+    document.getElementById('branchPos').value = maxPos;
+  }
+  document.getElementById('branchPos').max = maxPos;
+  document.getElementById('branchNVal').textContent  = 'n = ' + branchN;
+  document.getElementById('branchPosVal').textContent = 'pos = ' + branchPos;
+
+  // Total C = main chain (branchN) + 1 methyl branch
+  var totalC = branchN + 1;
+  // Total H for branched alkane = same as straight-chain alkane with same total C
+  // = 2*totalC + 2
+  var totalH = 2 * totalC + 2;
+
+  // IHD for alkane (branched or straight) = 0
+  var ihd = 0;
+
+  // IUPAC name: e.g. branchN=5, pos=2 → 2-metilbutana (main chain = longest = 4 if branch is at C2 of n=5? 
+  // Simplified: we name main chain as branchN carbons, branch as methyl at branchPos
+  var mainName = BRANCH_PREFIXES[branchN] + 'ana';
+  var iupacName = branchPos + '-metil' + mainName;
+
+  document.getElementById('brTotalC').textContent = totalC;
+  document.getElementById('brTotalH').textContent = totalH;
+  document.getElementById('brMol').textContent = 'C'+sub(totalC)+'H'+sub(totalH);
+  document.getElementById('brIHD').textContent = ihd;
+  document.getElementById('brName').textContent = iupacName;
+
+  drawBranch(branchN, branchPos);
+
+  // Update IHD panel
+  updateIHDPanel(totalC, totalH, iupacName + ' (isomer alkana)', 'Alkana bercabang — rantai jenuh, IHD = 0. Isomer struktural dari alkana rantai lurus C'+sub(totalC)+'H'+sub(totalH)+'.');
+}
+
+/* NEW: Draw branched chain visualization using divs */
+function drawBranch(nMain, bPos) {
+  var container = document.getElementById('branchChainDiv');
+  if (!container) return;
+  container.innerHTML = '';
+
+  var C = 36, H = 14, BL = 5;
+  var color = '#E040FB';      // branch chain color
+  var brColor = '#00BCD4';    // methyl branch color
+  var hColor = '#DDDDDD';
+
+  function md(css,txt){var d=document.createElement('div');d.style.cssText=css;if(txt!==undefined)d.textContent=txt;return d;}
+  function sq(sz,bg,brd,txt,col,fs){return md('width:'+sz+'px;height:'+sz+'px;background:'+bg+';border:2px solid '+brd+';display:flex;align-items:center;justify-content:center;font-family:Arial;font-size:'+fs+'px;font-weight:900;color:'+col+';flex-shrink:0;box-sizing:border-box;',txt);}
+  function vl(h){return md('width:2px;height:'+(h||BL)+'px;background:#555;margin:0 auto;flex-shrink:0;');}
+  function hl(){return md('width:'+BL+'px;height:2px;background:#555;flex-shrink:0;align-self:center;');}
+  function em(w,h){return md('width:'+w+'px;height:'+h+'px;flex-shrink:0;');}
+  var R='display:flex;align-items:center;justify-content:center;';
+  var fsC=Math.floor(C*0.28), fsH=Math.floor(H*0.55);
+
+  // The branch column sits above carbon at position bPos (0-indexed: bPos-1)
+  // Layout: top branch row + main chain row + bottom H row
+
+  // ── BRANCH ROW (above the main chain at bPos) ──
+  var branchRow = md(R.replace('center','flex-end'));
+  branchRow.appendChild(em(H+BL, H+BL)); // left offset (side H placeholder)
+  for (var t = 0; t < nMain; t++) {
+    var isBranchCol = (t === bPos - 1);
+    var col = md('width:'+C+'px;display:flex;flex-direction:column;align-items:center;flex-shrink:0;');
+    if (isBranchCol) {
+      // H on top of methyl C
+      col.appendChild(sq(H,'transparent',hColor,'H',hColor,fsH));
+      col.appendChild(vl());
+      col.appendChild(sq(C,'#0D2A2A',brColor,'C',brColor,fsC)); // methyl C
+      col.appendChild(vl());
+    } else {
+      col.appendChild(em(C, H + BL + C + BL)); // empty spacer
+    }
+    branchRow.appendChild(col);
+  }
+  branchRow.appendChild(em(H+BL, H+BL));
+
+  // ── MAIN CHAIN MIDDLE ROW ──
+  var midRow = md(R);
+  // Left end H
+  midRow.appendChild(sq(H,'transparent',hColor,'H',hColor,fsH));
+  midRow.appendChild(hl());
+  for (var m = 0; m < nMain; m++) {
+    var isEnd = (m === 0 || m === nMain-1);
+    var cColor = isEnd ? color : '#888';
+    var cBord  = isEnd ? color : '#555';
+    midRow.appendChild(sq(C,'#1E1E1E',cBord,'C',cColor,fsC));
+    // connector between carbons (not after last)
+    if (m < nMain - 1) {
+      // between m and m+1: normal bond line
+      midRow.appendChild(md('width:'+BL+'px;height:2px;background:#555;flex-shrink:0;align-self:center;'));
+    }
+  }
+  midRow.appendChild(hl());
+  // Right end H
+  midRow.appendChild(sq(H,'transparent',hColor,'H',hColor,fsH));
+
+  // ── BOTTOM H ROW ──
+  var botRow = md(R.replace('center','flex-start'));
+  botRow.appendChild(em(H+BL, H+BL));
+  for (var b2 = 0; b2 < nMain; b2++) {
+    var bCol = md('width:'+C+'px;display:flex;flex-direction:column;align-items:center;flex-shrink:0;');
+    bCol.appendChild(vl());
+    bCol.appendChild(sq(H,'transparent',hColor,'H',hColor,fsH));
+    botRow.appendChild(bCol);
+  }
+  botRow.appendChild(em(H+BL, H+BL));
+
+  // ── TOP H ROW (above main chain, not at branch position) ──
+  var topRow = md(R.replace('center','flex-end'));
+  topRow.appendChild(em(H+BL, H+BL));
+  for (var t2 = 0; t2 < nMain; t2++) {
+    var isBr2 = (t2 === bPos - 1);
+    var tCol = md('width:'+C+'px;display:flex;flex-direction:column;align-items:center;flex-shrink:0;');
+    if (!isBr2) {
+      tCol.appendChild(sq(H,'transparent',hColor,'H',hColor,fsH));
+      tCol.appendChild(vl());
+    } else {
+      // At branch position: methyl takes the top spot, no top H for this C
+      tCol.appendChild(em(C, H+BL));
+    }
+    topRow.appendChild(tCol);
+  }
+  topRow.appendChild(em(H+BL, H+BL));
+
+  // ── LABEL ROW ──
+  var lblRow = md(R+'margin-top:6px;');
+  lblRow.appendChild(em(H+BL, 14));
+  for (var lb = 0; lb < nMain; lb++) {
+    var isLbEnd = (lb === 0 || lb === nMain - 1);
+    var isBrLb  = (lb === bPos - 1);
+    lblRow.appendChild(md(
+      'width:'+C+'px;text-align:center;font-family:Arial;font-size:11px;font-weight:900;'+
+      'color:'+(isBrLb ? brColor : isLbEnd ? color : '#555')+';flex-shrink:0;',
+      'C'+(lb+1)
+    ));
+  }
+  lblRow.appendChild(em(H+BL, 14));
+
+  // ── LEGEND ──
+  var legend = md('margin-top:10px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap;');
+  legend.appendChild(md('font-size:11px;color:'+color+';font-weight:700;','■ Rantai utama (C'+nMain+')'));
+  legend.appendChild(md('font-size:11px;color:'+brColor+';font-weight:700;','■ Cabang metil –CH₃ @ C'+bPos));
+
+  var wrap = md('display:inline-flex;flex-direction:column;align-items:center;');
+  wrap.appendChild(branchRow);
+  wrap.appendChild(topRow);
+  wrap.appendChild(midRow);
+  wrap.appendChild(botRow);
+  wrap.appendChild(lblRow);
+  wrap.appendChild(legend);
+  container.appendChild(wrap);
+}
+
+/* ═══════════════════════════════════════════════════
+   NEW: CYCLE MODE
+   Sikloalkana: CnH2n, IHD = 1
+   Visualisasi menggunakan SVG polygon
+═══════════════════════════════════════════════════ */
+var cycleN = 6;
+
+function updateCycle() {
+  cycleN = parseInt(document.getElementById('cycleN').value);
+  document.getElementById('cycleNVal').textContent = 'n = ' + cycleN;
+
+  var totalC = cycleN;
+  var totalH = 2 * cycleN;  // CnH2n
+  var ihd = 1;
+
+  var name = CYCLE_NAMES[cycleN] || ('Siklo-C'+cycleN);
+
+  document.getElementById('cyTotalC').textContent = totalC;
+  document.getElementById('cyTotalH').textContent = totalH;
+  document.getElementById('cyMol').textContent = 'C'+sub(totalC)+'H'+sub(totalH);
+  document.getElementById('cyIHD').textContent = ihd;
+  document.getElementById('cyName').textContent = name;
+  document.getElementById('cycleFormula').textContent = 'C'+sub(totalC)+'H'+sub(totalH)+' — '+name;
+
+  drawCycle(cycleN);
+
+  // Update IHD panel
+  updateIHDPanel(totalC, totalH, name, 'Cincin sikloalkana — satu ikatan C-C ekstra membentuk cincin tertutup. IHD=1, sama dengan alkena, tetapi BERBEDA jenis ketidakjenuhan.');
+}
+
+/* NEW: Draw cycloalkane as SVG polygon */
+function drawCycle(n) {
+  var svg = document.getElementById('cycleSVG');
+  svg.innerHTML = '';
+
+  var cx = 140, cy = 130, r = 90;
+  var color = '#00BCD4';
+  var hColor = '#DDDDDD';
+  var nodeR = 16; // carbon atom circle radius
+
+  // Draw bonds (lines between adjacent carbons)
+  for (var i = 0; i < n; i++) {
+    var angle1 = (2 * Math.PI * i / n) - Math.PI/2;
+    var angle2 = (2 * Math.PI * (i+1) / n) - Math.PI/2;
+    var x1 = cx + r * Math.cos(angle1);
+    var y1 = cy + r * Math.sin(angle1);
+    var x2 = cx + r * Math.cos(angle2);
+    var y2 = cy + r * Math.sin(angle2);
+    var line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+    line.setAttribute('stroke', '#555'); line.setAttribute('stroke-width', '2');
+    svg.appendChild(line);
+  }
+
+  // Draw H atoms and bonds for each C
+  for (var i = 0; i < n; i++) {
+    var angle = (2 * Math.PI * i / n) - Math.PI/2;
+    var cx2 = cx + r * Math.cos(angle);
+    var cy2 = cy + r * Math.sin(angle);
+
+    // H direction: outward from center
+    var hAngle = angle;
+    var hDist = nodeR + 20;
+    var hx = cx2 + hDist * Math.cos(hAngle);
+    var hy = cy2 + hDist * Math.sin(hAngle);
+
+    // H bond line
+    var hLine = document.createElementNS('http://www.w3.org/2000/svg','line');
+    hLine.setAttribute('x1', cx2 + nodeR*0.6*Math.cos(hAngle)); hLine.setAttribute('y1', cy2 + nodeR*0.6*Math.sin(hAngle));
+    hLine.setAttribute('x2', hx - 8*Math.cos(hAngle));          hLine.setAttribute('y2', hy - 8*Math.sin(hAngle));
+    hLine.setAttribute('stroke','#444'); hLine.setAttribute('stroke-width','1.5');
+    svg.appendChild(hLine);
+
+    // H₂ label (each carbon in cycloalkane has 2 H)
+    var hTxt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    hTxt.setAttribute('x', hx); hTxt.setAttribute('y', hy+4);
+    hTxt.setAttribute('text-anchor','middle');
+    hTxt.setAttribute('font-family','Arial'); hTxt.setAttribute('font-size','11');
+    hTxt.setAttribute('font-weight','700'); hTxt.setAttribute('fill', hColor);
+    hTxt.textContent = 'H₂';
+    svg.appendChild(hTxt);
+
+    // Carbon circle
+    var circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx', cx2); circle.setAttribute('cy', cy2);
+    circle.setAttribute('r', nodeR);
+    circle.setAttribute('fill','#1E1E1E'); circle.setAttribute('stroke', color); circle.setAttribute('stroke-width','2');
+    svg.appendChild(circle);
+
+    // C label
+    var txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x', cx2); txt.setAttribute('y', cy2+4);
+    txt.setAttribute('text-anchor','middle');
+    txt.setAttribute('font-family','Arial'); txt.setAttribute('font-size','12');
+    txt.setAttribute('font-weight','900'); txt.setAttribute('fill', color);
+    txt.textContent = 'C';
+    svg.appendChild(txt);
+  }
+
+  // Center label
+  var center = document.createElementNS('http://www.w3.org/2000/svg','text');
+  center.setAttribute('x', cx); center.setAttribute('y', cy+5);
+  center.setAttribute('text-anchor','middle');
+  center.setAttribute('font-family','Arial'); center.setAttribute('font-size','13');
+  center.setAttribute('font-weight','900'); center.setAttribute('fill','#555');
+  center.textContent = 'n='+n;
+  svg.appendChild(center);
+
+  // IHD badge inside
+  var ihdBg = document.createElementNS('http://www.w3.org/2000/svg','text');
+  ihdBg.setAttribute('x', cx); ihdBg.setAttribute('y', cy+22);
+  ihdBg.setAttribute('text-anchor','middle');
+  ihdBg.setAttribute('font-family','Arial'); ihdBg.setAttribute('font-size','10');
+  ihdBg.setAttribute('fill','#333');
+  ihdBg.textContent = 'IHD=1';
+  svg.appendChild(ihdBg);
+
+  // Copyright
+  var copy = document.createElementNS('http://www.w3.org/2000/svg','text');
+  copy.setAttribute('x', cx); copy.setAttribute('y', 272);
+  copy.setAttribute('text-anchor','middle');
+  copy.setAttribute('font-family','Arial'); copy.setAttribute('font-size','9');
+  copy.setAttribute('fill','#2A2A2A');
+  copy.textContent = '© M. Alif Alfatih Fauzan 2026';
+  svg.appendChild(copy);
+}
+
+/* ═══════════════════════════════════════════════════
+   NEW: MODE SWITCHING — saling eksklusif
+   Setiap mode menyembunyikan elemen mode lain
+═══════════════════════════════════════════════════ */
+function setMode(mode) {
+  currentMode = mode;
+
+  // Reset all mode buttons
+  ['single','compare','branch','cycle'].forEach(function(m) {
+    var btn = document.getElementById('msBtn-'+m);
+    if (btn) btn.className = 'msbtn';
+  });
+
+  // Hide all mode-specific elements
+  var singleEls = ['singleControls','singleViz','singleResults','warnBox'];
+  var compareEls = ['compareViz'];
+  var branchEls  = ['branchControls','branchViz','branchResults'];
+  var cycleEls   = ['cycleControls','cycleViz','cycleResults'];
+
+  singleEls.concat(compareEls, branchEls, cycleEls).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  // Also hide legacy panels for branch/cycle (they're covered by IHD panel)
+  var legacyPanels = document.getElementById('ratioPanel');
+  var boundaryPanel = document.getElementById('boundaryPanel');
+
+  if (mode === 'single') {
+    document.getElementById('msBtn-single').className = 'msbtn active-single';
+    document.getElementById('singleControls').style.display = 'grid';
+    document.getElementById('singleViz').style.display = 'flex';
+    document.getElementById('singleResults').style.display = 'grid';
+    if (legacyPanels) legacyPanels.style.display = '';
+    if (boundaryPanel) boundaryPanel.style.display = '';
+    update();
+
+  } else if (mode === 'compare') {
+    document.getElementById('msBtn-compare').className = 'msbtn active-compare';
+    // Show slider from single controls but not series buttons — reuse nSlider
+    document.getElementById('singleControls').style.display = 'grid';
+    // hide series selection, keep slider
+    document.querySelector('#singleControls .series-btns').parentElement.style.display = 'none';
+    document.getElementById('compareViz').style.display = 'block';
+    if (legacyPanels) legacyPanels.style.display = '';
+    if (boundaryPanel) boundaryPanel.style.display = '';
+    updateCompare();
+    updateIHDPanel(n, 2*n+2, 'Compare Mode', 'Menampilkan alkana, alkena, alkuna secara bersamaan untuk n='+n+'.');
+
+  } else if (mode === 'branch') {
+    document.getElementById('msBtn-branch').className = 'msbtn active-branch';
+    document.getElementById('branchControls').style.display = 'block';
+    document.getElementById('branchViz').style.display = 'flex';
+    document.getElementById('branchResults').style.display = 'grid';
+    if (legacyPanels) legacyPanels.style.display = 'none';
+    if (boundaryPanel) boundaryPanel.style.display = 'none';
+    updateBranch();
+
+  } else if (mode === 'cycle') {
+    document.getElementById('msBtn-cycle').className = 'msbtn active-cycle';
+    document.getElementById('cycleControls').style.display = 'block';
+    document.getElementById('cycleViz').style.display = 'flex';
+    document.getElementById('cycleResults').style.display = 'grid';
+    if (legacyPanels) legacyPanels.style.display = 'none';
+    if (boundaryPanel) boundaryPanel.style.display = 'none';
+    updateCycle();
+  }
+}
+
+/* ── Event listeners ── */
+function initEvents() {
+  // Existing series buttons
+  document.getElementById('btn-alkana').addEventListener('click', function(){ setSeries('alkana'); });
+  document.getElementById('btn-alkena').addEventListener('click', function(){ setSeries('alkena'); });
+  document.getElementById('btn-alkuna').addEventListener('click', function(){ setSeries('alkuna'); });
+
+  // Existing slider
+  var sl = document.getElementById('nSlider');
+  sl.addEventListener('input',  function(){ setN(this.value); });
+  sl.addEventListener('change', function(){ setN(this.value); });
+
+  // Mode switcher buttons
+  document.getElementById('msBtn-single').addEventListener('click',  function(){ setMode('single'); });
+  document.getElementById('msBtn-compare').addEventListener('click', function(){ setMode('compare'); });
+  document.getElementById('msBtn-branch').addEventListener('click',  function(){ setMode('branch'); });
+  document.getElementById('msBtn-cycle').addEventListener('click',   function(){ setMode('cycle'); });
+
+  // NEW: Branch sliders
+  document.getElementById('branchN').addEventListener('input', function(){ updateBranch(); });
+  document.getElementById('branchPos').addEventListener('input', function(){ updateBranch(); });
+
+  // NEW: Cycle slider
+  document.getElementById('cycleN').addEventListener('input', function(){ updateCycle(); });
+
+  // Existing proof button
+  document.getElementById('btnProof').addEventListener('click', function(){
+    var panel = document.getElementById('proofPanel');
+    var open = panel.style.display !== 'none';
+    panel.style.display = open ? 'none' : 'block';
+    this.style.background  = open ? 'transparent' : '#1A1A1A';
+    this.style.borderColor = open ? '#555' : '#FFFFFF';
+    this.style.color       = open ? '#aaa' : '#FFFFFF';
+  });
+
+  window.addEventListener('resize', function(){
+    if (currentMode==='single') update();
+    else if (currentMode==='compare') updateCompare();
+    else if (currentMode==='branch') updateBranch();
+    else if (currentMode==='cycle') updateCycle();
+  });
+
+  // Initial render
+  setMode('single');
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function(){ initEvents(); });
+} else {
+  setTimeout(function(){ initEvents(); }, 100);
+}
+</script>
+</body>
+</html>
